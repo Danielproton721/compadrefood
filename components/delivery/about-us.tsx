@@ -12,17 +12,17 @@ export function AboutUs() {
         <div className="relative w-full h-48">
           <Image
             src="/store-front.jpg"
-            alt="Fachada Arco Bebidas Distribuidora"
+            alt="Fachada CompadreFood Distribuidora"
             fill
             className="object-cover"
           />
         </div>
         
         <div className="p-4 space-y-3">
-          <h3 className="font-bold text-foreground text-lg">Arco Bebidas Distribuidora</h3>
+          <h3 className="font-bold text-foreground text-lg">CompadreFood Distribuidora</h3>
           
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Fundada desde 2022, a Arco Bebidas é uma distribuidora comprometida em trabalhar 
+            Fundada desde 2022, a CompadreFood é uma distribuidora comprometida em trabalhar 
             com as melhores marcas de bebidas de extrema qualidade. Oferecemos preços imbatíveis 
             e garantimos satisfação em cada pedido.
           </p>

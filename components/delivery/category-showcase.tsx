@@ -26,7 +26,7 @@ export function HighlightProducts({ onProductSelect, onComboClick }: HighlightPr
   return (
     <section className="mb-8">
       <h2 className="text-lg font-bold text-foreground mb-4">Combos Destaques</h2>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 snap-x snap-mandatory pb-2">
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 scroll-pl-4 snap-x snap-mandatory pb-2">
         {/* Card Monte seu Combo */}
         <div
           onClick={() => onComboClick?.()}
@@ -73,7 +73,7 @@ export function HighlightProducts({ onProductSelect, onComboClick }: HighlightPr
                   className="object-contain p-2"
                 />
                 {discount > 0 && (
-                  <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                  <span className="absolute top-2 left-2 bg-promo text-promo-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-md">
                     -{discount}%
                   </span>
                 )}

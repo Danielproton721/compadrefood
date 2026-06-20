@@ -2281,6 +2281,32 @@ export const additionals: Additional[] = [
   { id: "a6", name: "Saco Térmico", quantity: "1 un", price: 0, freeOnFirstOrder: true },
 ]
 
+// Adicionais GRÁTIS por prato (preferências, estilo iFood). Cada um pode ser
+// escolhido até 2x. Sem custo — não alteram o total. A chave é o id do produto.
+const fa = (id: string, names: string[]): Additional[] =>
+  names.map((name, i) => ({ id: `f${id}-${i + 1}`, name, quantity: "", price: 0 }))
+
+export const foodAdditionals: Record<string, Additional[]> = {
+  "200": fa("200", ["Mais queijo", "Mais bacon", "Molho cheddar", "Maionese da casa", "Ketchup", "Sem sal"]),
+  "201": fa("201", ["Molho da casa", "Mais queijo", "Pimenta extra", "Limão"]),
+  "202": fa("202", ["Molho tártaro extra", "Mais alho", "Limão", "Pimenta", "Farofa"]),
+  "203": fa("203", ["Mais batata", "Mais bacon", "Vinagrete", "Farofa", "Pão de alho", "Molho à parte"]),
+  "204": fa("204", ["Requeijão extra", "Catupiry", "Molho de pimenta", "Ketchup"]),
+  "205": fa("205", ["Molho à parte", "Mais batata palha", "Arroz extra", "Sem cebola"]),
+  "206": fa("206", ["Mais couve", "Mais farofa", "Laranja", "Torresmo", "Arroz extra", "Vinagrete", "Pimenta"]),
+  "207": fa("207", ["Mais cebola", "Arroz extra", "Fritas", "Farofa", "Molho à parte"]),
+  "208": fa("208", ["Molho tártaro", "Limão", "Mais fritas", "Arroz extra"]),
+  "209": fa("209", ["Mais alcaparras", "Molho à parte", "Arroz extra", "Batata"]),
+  "210": fa("210", ["Vinagrete", "Farofa", "Pão de alho", "Mandioca", "Molho à parte"]),
+  "211": fa("211", ["Alho e óleo extra", "Limão", "Molho de pimenta", "Farofa"]),
+  "212": fa("212", ["Mais queijo", "Molho extra", "Arroz extra", "Fritas"]),
+  "213": fa("213", ["Mais queijo", "Bacon", "Cheddar", "Maionese", "Ketchup", "Mostarda", "Sem cebola"]),
+  "214": fa("214", ["Molho de pimenta", "Mais queijo", "Limão"]),
+  "215": fa("215", ["Mais torresmo", "Ovo", "Couve", "Farofa", "Pimenta"]),
+  "216": fa("216", ["Mandioca extra", "Molho de pimenta", "Limão", "Vinagrete"]),
+  "217": fa("217", ["Molho especial extra", "Molho barbecue", "Pimenta", "Limão"]),
+}
+
 export const reviews: Review[] = [
   { id: "r1", name: "Carlos M.", rating: 5, comment: "Bebida gelada e entrega rápida! Salvou a festa.", date: "2 dias atrás" },
   { id: "r2", name: "Ana Paula S.", rating: 5, comment: "Preços muito bons e chegou super rápido!", date: "3 dias atrás" },

@@ -13,7 +13,7 @@ export function CategoryNav({ activeCategory, onCategoryChange }: CategoryNavPro
   return (
     <nav className="py-4">
       <div className="max-w-lg mx-auto px-4">
-        <div className="flex overflow-x-auto scrollbar-hide gap-4 pb-1">
+        <div className="grid grid-cols-4 gap-x-2 gap-y-4">
           {categories.map((category) => (
             <button
               key={category.id}

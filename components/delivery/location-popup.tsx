@@ -3,7 +3,7 @@
 import React from "react"
 
 import { useState, useEffect } from "react"
-import { MapPin, Loader2, CheckCircle2, Store, Search } from "lucide-react"
+import { MapPin, Loader2, CheckCircle2, Store, Search, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 // Lista de estados brasileiros
@@ -58,7 +58,8 @@ interface LocationPopupProps {
 }
 
 export function LocationPopup({ onClose, onLocationSet }: LocationPopupProps) {
-  const [step, setStep] = useState<"state" | "city" | "searching" | "found">("state")
+  const [step, setStep] = useState<"detecting" | "detected" | "state" | "city" | "searching" | "found">("detecting")
+  const [detected, setDetected] = useState<{ city: string; sigla: string; estado: string } | null>(null)
   const [selectedState, setSelectedState] = useState("")
   const [selectedCity, setSelectedCity] = useState("")
   const [cidadesDoEstado, setCidadesDoEstado] = useState<string[]>([])
@@ -86,6 +87,28 @@ export function LocationPopup({ onClose, onLocationSet }: LocationPopupProps) {
       })
     }
   }, [selectedState])
+
+  // Detecta a cidade/estado pelo IP ao abrir (sem o usuário escolher).
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/geo", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return
+        if (d?.ok && d.city) {
+          setDetected({ city: d.city, sigla: d.sigla || "", estado: d.estado || d.sigla || "" })
+          setStep("detected")
+        } else {
+          setStep("state")
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setStep("state")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Efeito para o timer de 3.5 segundos no passo "searching"
   useEffect(() => {
@@ -116,6 +139,13 @@ export function LocationPopup({ onClose, onLocationSet }: LocationPopupProps) {
     }
   }
 
+  const handleConfirmDetected = () => {
+    if (!detected) return
+    setSelectedState(detected.sigla)
+    setSelectedCity(detected.city)
+    setStep("searching")
+  }
+
   const handleGoShopping = () => {
     const estadoNome = ESTADOS_BRASIL.find(e => e.sigla === selectedState)?.nome || selectedState
     onLocationSet(`${selectedCity}, ${estadoNome}`)
@@ -141,6 +171,44 @@ export function LocationPopup({ onClose, onLocationSet }: LocationPopupProps) {
 
         {/* Content */}
         <div className="p-6">
+          {/* Detectando localização pelo IP */}
+          {step === "detecting" && (
+            <div className="py-10 flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              <p className="text-sm text-muted-foreground">Detectando sua localização…</p>
+            </div>
+          )}
+
+          {/* Localização detectada — confirmar */}
+          {step === "detected" && detected && (
+            <div className="py-2 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300">
+              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                <HelpCircle className="w-9 h-9 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground">Localização Detectada</h2>
+              <p className="text-sm text-muted-foreground mt-2 mb-6">
+                Vimos que você está em{" "}
+                <span className="font-bold text-foreground">
+                  {detected.city}{detected.estado ? ` - ${detected.estado}` : ""}
+                </span>
+                . Está correto?
+              </p>
+              <Button
+                onClick={handleConfirmDetected}
+                className="w-full py-6 bg-primary text-primary-foreground hover:bg-primary/90 text-base font-bold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              >
+                Sim, está correto
+              </Button>
+              <Button
+                onClick={() => setStep("state")}
+                variant="ghost"
+                className="w-full py-5 mt-2 text-foreground font-semibold hover:bg-secondary"
+              >
+                Não, mudar cidade
+              </Button>
+            </div>
+          )}
+
           {/* Selecao de Estado */}
           {step === "state" && (
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -295,7 +363,7 @@ export function LocationPopup({ onClose, onLocationSet }: LocationPopupProps) {
               </p>
               <Button
                 onClick={handleGoShopping}
-                className="w-full py-6 bg-green-600 text-white hover:bg-green-700 gap-2 text-base font-semibold
+                className="w-full py-6 bg-primary text-primary-foreground hover:bg-primary/90 gap-2 text-base font-semibold
                   hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               >
                 {"Ir as compras"}

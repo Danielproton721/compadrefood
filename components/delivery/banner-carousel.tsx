@@ -6,15 +6,25 @@ import { useState, useEffect, useCallback } from "react"
 const banners = [
   {
     id: 1,
-    src: "/banners/banner-1.jpg",
-    alt: "Deu fome? Peca aqui tambem! Entrega em minutos",
+    src: "/banners/banner-deu-fome.png",
+    alt: "Deu fome no jogo? Petisco quentinho na sua casa antes do apito",
+    ratio: "1752 / 898",
     action: "category" as const,
     categoryLink: "comida",
   },
   {
     id: 2,
+    src: "/banners/banner-esquenta.png",
+    alt: "Esquenta do jogo — cerveja gelada e petisco na sua casa",
+    ratio: "1898 / 829",
+    action: "category" as const,
+    categoryLink: "cervejas",
+  },
+  {
+    id: 3,
     src: "/banners/banner2.webp",
     alt: "Monte seu combo! Precos imbativeis com 30% OFF",
+    ratio: "16 / 7",
     action: "combo" as const,
     categoryLink: "",
   },
@@ -39,15 +49,19 @@ export function BannerCarousel({ onBannerClick, onComboClick }: BannerCarouselPr
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 pb-2">
-      <div className="relative overflow-hidden rounded-xl">
+      {/* O frame adapta à proporção do banner atual — cada banner aparece inteiro. */}
+      <div
+        className="relative overflow-hidden rounded-xl transition-[aspect-ratio] duration-500 ease-out"
+        style={{ aspectRatio: banners[current].ratio }}
+      >
         <div
-          className="flex transition-transform duration-500 ease-out"
+          className="flex h-full transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${current * 100}%)` }}
         >
           {banners.map((banner) => (
             <div
               key={banner.id}
-              className="relative aspect-[16/7] w-full flex-shrink-0 cursor-pointer"
+              className="relative h-full w-full flex-shrink-0 cursor-pointer"
               onClick={() => {
                 if (banner.action === "combo" && onComboClick) {
                   onComboClick()

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import { ArrowLeft, Minus, Plus, UtensilsCrossed, Package } from "lucide-react"
 import type { Product, Additional } from "@/lib/types"
-import { additionals, products } from "@/lib/data"
+import { additionals, products, foodAdditionals } from "@/lib/data"
 import { useCart } from "@/lib/cart-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -53,16 +53,22 @@ export function ProductDetail({ product, onClose, onSelectProduct }: ProductDeta
     return shuffled.slice(0, 10)
   }, [product.id])
 
-  // Verifica se ja foi escolhido um adicional gratuito
-  const alreadyChosen = freeAdditionalChosen !== null
+  // Comida tem adicionais próprios (preferências grátis, até 2 de cada).
+  // Bebida mantém o brinde "1 grátis no 1º pedido".
+  const dishAdditionals = foodAdditionals[product.id]
+  const isFood = Array.isArray(dishAdditionals) && dishAdditionals.length > 0
+  const additionalsList = isFood ? dishAdditionals : additionals
+  const MAX_PER_ADDITIONAL = isFood ? 2 : 1
+
+  // (brinde de bebida) já escolhido?
+  const alreadyChosen = !isFood && freeAdditionalChosen !== null
 
   const handleAdditionalChange = (additionalId: string, delta: number) => {
-    // Se ja escolheu antes, nao permite alterar
     if (alreadyChosen) return
 
     setSelectedAdditionals((prev) => {
       const current = prev[additionalId] || 0
-      const newValue = Math.max(0, Math.min(current + delta, 1))
+      const newValue = Math.max(0, Math.min(current + delta, MAX_PER_ADDITIONAL))
       if (newValue === 0) {
         const updated = { ...prev }
         delete updated[additionalId]
@@ -83,12 +89,12 @@ export function ProductDetail({ product, onClose, onSelectProduct }: ProductDeta
     const additionalsArray = Object.entries(selectedAdditionals)
       .filter(([, qty]) => qty > 0)
       .map(([id, qty]) => ({
-        additional: additionals.find((a) => a.id === id) as Additional,
+        additional: additionalsList.find((a) => a.id === id) as Additional,
         quantity: qty,
       }))
 
-    // Salva o adicional escolhido se ainda nao tiver sido escolhido
-    if (!alreadyChosen && additionalsArray.length > 0) {
+    // Brinde de bebida: trava 1 grátis por pedido (não vale pra comida).
+    if (!isFood && !alreadyChosen && additionalsArray.length > 0) {
       setFreeAdditionalChosen(additionalsArray[0].additional)
     }
 
@@ -186,7 +192,45 @@ export function ProductDetail({ product, onClose, onSelectProduct }: ProductDeta
             )}
           </div>
 
-          <div className="mt-6 bg-primary/10 rounded-xl p-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
+          {isFood ? (
+            <div className="mt-6 rounded-xl border border-border p-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
+              <div className="mb-3">
+                <h3 className="font-semibold text-foreground">Adicionais</h3>
+                <p className="text-sm text-muted-foreground">Opcional • grátis • até 2 de cada</p>
+              </div>
+              <div className="space-y-2">
+                {additionalsList.map((additional) => {
+                  const qv = selectedAdditionals[additional.id] || 0
+                  return (
+                    <div key={additional.id} className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground text-sm">{additional.name}</p>
+                        <p className="text-xs text-green-600 font-medium">Grátis</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleAdditionalChange(additional.id, -1)}
+                          disabled={qv === 0}
+                          className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary hover:scale-110 active:scale-90 disabled:opacity-40 transition-all duration-200"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className={`w-4 text-center font-medium text-foreground transition-all duration-200 ${qv > 0 ? "scale-125 text-primary" : ""}`}>{qv}</span>
+                        <button
+                          onClick={() => handleAdditionalChange(additional.id, 1)}
+                          disabled={qv >= 2}
+                          className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary hover:scale-110 active:scale-90 disabled:opacity-40 transition-all duration-200"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 bg-primary/10 rounded-xl p-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-semibold text-foreground">
@@ -286,7 +330,8 @@ export function ProductDetail({ product, onClose, onSelectProduct }: ProductDeta
                 ))}
               </div>
             )}
-          </div>
+            </div>
+          )}
 
           <div className="mt-6">
             <h3 className="font-semibold text-foreground mb-2">

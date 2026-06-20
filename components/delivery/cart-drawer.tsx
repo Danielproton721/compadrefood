@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Minus, Plus, Trash2, ShoppingBag, Pencil } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
+import { ChevronDown, Minus, Plus, Trash2, Pencil, ShoppingBag } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
+import { copaAtiva } from "@/lib/copa"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { PixCheckout } from "./pix-checkout"
 import { UpsellCombo } from "./upsell-combo"
 import { UpsellComida, UPSELL_PRODUCT_IDS } from "./upsell-comida"
 
@@ -16,10 +18,12 @@ interface CartDrawerProps {
 }
 
 const MIN_ORDER_VALUE = 85
+// Valor de frete "de" (riscado) só para evidenciar a economia da entrega grátis.
+const DELIVERY_STRIKE = 9.9
 
 export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawerProps) {
-  const { items, totalPrice, updateQuantity, removeItem, clearCart, addCombo } = useCart()
-  const [showPixCheckout, setShowPixCheckout] = useState(false)
+  const { items, totalPrice, totalItems, updateQuantity, removeItem, clearCart, addCombo } = useCart()
+  const router = useRouter()
   const [showUpsellComida, setShowUpsellComida] = useState(false)
   const [editingComboId, setEditingComboId] = useState<string | null>(null)
   const [showComboBuilder, setShowComboBuilder] = useState(false)
@@ -29,12 +33,29 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
   const canCheckout = totalPrice >= MIN_ORDER_VALUE
   const remainingValue = MIN_ORDER_VALUE - totalPrice
 
+  // Total "de" (sem desconto) para mostrar o riscado no resumo.
+  const originalTotal = items.reduce((sum, item) => {
+    const unit =
+      item.product.originalPrice && item.product.originalPrice > item.product.price
+        ? item.product.originalPrice
+        : item.product.price
+    return sum + unit * item.quantity
+  }, 0)
+  const hasDiscount = originalTotal > totalPrice + 0.001
+
+  const brl = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`
+
+  const goToCheckout = () => {
+    onClose()
+    router.push("/checkout")
+  }
+
   const handleCheckout = () => {
     if (!canCheckout) return
     if (!hasUpsellItemInCart) {
       setShowUpsellComida(true)
     } else {
-      setShowPixCheckout(true)
+      goToCheckout()
     }
   }
 
@@ -44,7 +65,7 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
 
   const handleUpsellSkip = () => {
     setShowUpsellComida(false)
-    setShowPixCheckout(true)
+    goToCheckout()
   }
 
   const handleViewMenu = () => {
@@ -53,11 +74,6 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
     if (onNavigateToCategory) {
       onNavigateToCategory("comida")
     }
-  }
-
-  const handlePaymentSuccess = () => {
-    clearCart()
-    onClose()
   }
 
   // Lock body scroll on iOS Safari when cart is open
@@ -74,196 +90,290 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
     }
   }, [isOpen])
 
-  if (!isOpen) return null
-
   return (
-    <div className="safari-drawer-overlay z-50">
-      <div className="fixed inset-0 z-50 bg-black/60 animate-in fade-in duration-300" />
-      <div className="fixed bottom-0 left-0 right-0 z-[51] bg-card rounded-t-3xl max-h-[85dvh] max-h-[85svh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-full duration-500 ease-out">
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div key="cart-drawer" className="safari-drawer-overlay z-50">
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-[51] bg-card rounded-t-3xl max-h-[92dvh] max-h-[92svh] overflow-hidden flex flex-col"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 320, damping: 34, mass: 0.9 }}
+          >
         <div className="max-w-lg mx-auto w-full flex flex-col flex-1 min-h-0">
-          <div className="flex-shrink-0 bg-card border-b border-border p-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-foreground">Seu Carrinho</h2>
+          {/* Topbar: SACOLA */}
+          <div className="flex-shrink-0 grid grid-cols-3 items-center px-2 py-3 border-b border-border bg-card">
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-secondary"
+              aria-label="Fechar sacola"
+              className="justify-self-start p-2 rounded-full hover:bg-secondary active:scale-90 transition-all"
             >
-              <X className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown className="w-6 h-6 text-primary" />
             </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 min-h-0 safari-scroll">
-            {items.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Seu carrinho está vazio</p>
-              </div>
+            <h2 className="justify-self-center text-base font-extrabold tracking-wide text-foreground">SACOLA</h2>
+            {items.length > 0 ? (
+              <button
+                onClick={clearCart}
+                className="justify-self-end pr-2 text-sm font-bold text-primary hover:opacity-80 active:scale-95 transition-all"
+              >
+                Limpar
+              </button>
             ) : (
-              <div className="space-y-4">
-                {items.map((item, index) => (
-                  <div
-                    key={item.product.id}
-                    style={{ animationDelay: `${index * 100}ms` }}
-                    className={`flex gap-4 rounded-xl p-4 animate-in fade-in slide-in-from-right-4 fill-mode-both
-                      transition-colors duration-200 ${item.isCombo ? "bg-amber-50 border border-amber-200" : "bg-secondary hover:bg-secondary/80"}`}
-                  >
-                    <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                      {item.isCombo && item.comboItems ? (
-                        <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 bg-secondary/30 rounded-lg overflow-hidden">
-                          {item.comboItems.destilados[0] && (
-                            <div className="relative">
-                              <Image src={item.comboItems.destilados[0].product.image || "/placeholder.svg"} alt="Destilado" fill className="object-cover" />
-                            </div>
-                          )}
-                          {item.comboItems.gelos[0] && (
-                            <div className="relative">
-                              <Image src={item.comboItems.gelos[0].product.image || "/placeholder.svg"} alt="Gelo" fill className="object-cover" />
-                            </div>
-                          )}
-                          {item.comboItems.energeticos[0] && (
-                            <div className="relative col-span-2">
-                              <Image src={item.comboItems.energeticos[0].product.image || "/placeholder.svg"} alt="Energetico" fill className="object-cover" />
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <Image
-                          src={item.product.image || "/placeholder.svg"}
-                          alt={item.product.name}
-                          fill
-                          className="object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground line-clamp-1">
-                        {item.isCombo ? "Combo 30% OFF" : item.product.name}
-                      </h3>
-                      {item.isCombo && item.comboItems ? (
-                        <div className="mt-0.5">
-                          {item.comboItems.destilados.map((s) => (
-                            <p key={s.product.id} className="text-xs text-muted-foreground line-clamp-1">{s.qty}x {s.product.name}</p>
-                          ))}
-                          {item.comboItems.gelos.map((s) => (
-                            <p key={s.product.id} className="text-xs text-muted-foreground line-clamp-1">{s.qty}x {s.product.name}</p>
-                          ))}
-                          {item.comboItems.energeticos.map((s) => (
-                            <p key={s.product.id} className="text-xs text-muted-foreground line-clamp-1">{s.qty}x {s.product.name}</p>
-                          ))}
-                        </div>
-                      ) : null}
-                      <p className={`text-sm font-bold ${item.isCombo ? "text-amber-600" : "text-primary"}`}>
-                        R$ {item.product.price.toFixed(2).replace(".", ",")}
-                      </p>
-                      {!item.isCombo && item.additionals && item.additionals.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          + {item.additionals.map((a) => a.additional.name).join(", ")}
-                        </p>
-                      )}
-                      {!item.isCombo && item.observation && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Obs: {item.observation}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2">
-                        {!item.isCombo && (
-                          <>
-                            <button
-                              onClick={() =>
-                                updateQuantity(item.product.id, item.quantity - 1)
-                              }
-                              className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-card hover:scale-110 active:scale-90 transition-all duration-200"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="font-medium text-foreground w-6 text-center transition-all duration-200">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() =>
-                                updateQuantity(item.product.id, item.quantity + 1)
-                              }
-                              className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-card hover:scale-110 active:scale-90 transition-all duration-200"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </>
-                        )}
-                        {item.isCombo && (
-                          <button
-                            onClick={() => {
-                              setEditingComboId(item.product.id)
-                            }}
-                            className="ml-auto p-2 text-amber-600 hover:text-amber-700 hover:scale-110 active:scale-90 transition-all duration-200"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => removeItem(item.product.id)}
-                          className={`${item.isCombo ? "" : "ml-auto"} p-2 text-accent hover:text-accent/80 hover:scale-110 active:scale-90 transition-all duration-200`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Upsell Combo - so mostra se nao tiver combo no carrinho */}
-                {!items.some((item) => item.isCombo) && (
-                  <UpsellCombo onAddCombo={addCombo} />
-                )}
-              </div>
+              <span />
             )}
           </div>
 
-          {items.length > 0 && (
-            <div className="flex-shrink-0 border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-4 bg-card">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium text-foreground">
-                  R$ {totalPrice.toFixed(2).replace(".", ",")}
-                </span>
+          {items.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-16 px-6">
+              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                <ShoppingBag className="w-8 h-8 text-muted-foreground" />
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Entrega</span>
-                <span className="font-medium text-primary">Grátis</span>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <span className="font-bold text-foreground text-lg">Total</span>
-                <span className="font-bold text-foreground text-lg">
-                  R$ {totalPrice.toFixed(2).replace(".", ",")}
-                </span>
-              </div>
-              {!canCheckout && (
-                <p className="text-xs text-accent text-center">
-                  Faltam R$ {remainingValue.toFixed(2).replace(".", ",")} para atingir o pedido minimo de R$ {MIN_ORDER_VALUE.toFixed(2).replace(".", ",")}
-                </p>
-              )}
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={clearCart}
-                  className="flex-shrink-0 bg-transparent"
+              <p className="font-bold text-foreground">Sua sacola está vazia</p>
+              <p className="text-sm text-muted-foreground mt-1">Adicione bebidas geladas e aproveite o frete grátis.</p>
+              <Button onClick={onClose} className="mt-5 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-8">
+                Ver produtos
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto px-4 min-h-0 safari-scroll">
+                {/* Linha da loja */}
+                <div className="flex items-center gap-3 py-4">
+                  <div className="w-11 h-11 rounded-full bg-white ring-1 ring-border overflow-hidden flex items-center justify-center flex-shrink-0">
+                    <Image src="/logo.png" alt="CompadreFood" width={44} height={44} className="object-contain" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-extrabold text-foreground leading-tight">CompadreFood</p>
+                    <button
+                      onClick={onClose}
+                      className="text-sm font-bold text-primary hover:opacity-80 transition-opacity"
+                    >
+                      Adicionar mais itens
+                    </button>
+                  </div>
+                </div>
+
+                <h3 className="text-base font-bold text-foreground pt-2 pb-1">Itens adicionados</h3>
+
+                <div className="divide-y divide-border">
+                  {items.map((item) => {
+                    const discount =
+                      item.product.originalPrice && item.product.originalPrice > item.product.price
+                        ? Math.round(
+                            ((item.product.originalPrice - item.product.price) / item.product.originalPrice) * 100,
+                          )
+                        : 0
+                    return (
+                      <div key={item.product.id} className="flex gap-3 py-4">
+                        {/* Imagem + lápis de edição (combos) */}
+                        <div className="relative w-16 h-16 flex-shrink-0">
+                          {item.isCombo && item.comboItems ? (
+                            <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 bg-secondary rounded-xl overflow-hidden">
+                              {item.comboItems.destilados[0] && (
+                                <div className="relative">
+                                  <Image src={item.comboItems.destilados[0].product.image || "/placeholder.svg"} alt="Destilado" fill className="object-cover" />
+                                </div>
+                              )}
+                              {item.comboItems.gelos[0] && (
+                                <div className="relative">
+                                  <Image src={item.comboItems.gelos[0].product.image || "/placeholder.svg"} alt="Gelo" fill className="object-cover" />
+                                </div>
+                              )}
+                              {item.comboItems.energeticos[0] && (
+                                <div className="relative col-span-2">
+                                  <Image src={item.comboItems.energeticos[0].product.image || "/placeholder.svg"} alt="Energetico" fill className="object-cover" />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="w-full h-full rounded-xl overflow-hidden bg-secondary">
+                              <Image
+                                src={item.product.image || "/placeholder.svg"}
+                                alt={item.product.name}
+                                width={64}
+                                height={64}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          {item.isCombo && (
+                            <button
+                              onClick={() => setEditingComboId(item.product.id)}
+                              aria-label="Editar combo"
+                              className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-card ring-1 ring-border shadow flex items-center justify-center active:scale-90 transition-transform"
+                            >
+                              <Pencil className="w-3.5 h-3.5 text-primary" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Conteúdo */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-foreground line-clamp-1">
+                            {item.isCombo ? "Combo 30% OFF" : item.product.name}
+                          </h4>
+                          {!item.isCombo && item.product.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{item.product.description}</p>
+                          )}
+
+                          {/* Preço de/por */}
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className="font-bold text-primary">{brl(item.product.price)}</span>
+                            {item.product.originalPrice && item.product.originalPrice > item.product.price && (
+                              <span className="text-xs text-muted-foreground line-through">{brl(item.product.originalPrice)}</span>
+                            )}
+                            {discount > 0 && (
+                              <span className="rounded-md bg-promo text-promo-foreground text-[10px] font-bold px-1.5 py-0.5">
+                                -{discount}%
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Conteúdo do combo */}
+                          {item.isCombo && item.comboItems && (
+                            <div className="mt-1">
+                              {[...item.comboItems.destilados, ...item.comboItems.gelos, ...item.comboItems.energeticos].map((s) => (
+                                <p key={s.product.id} className="text-xs text-muted-foreground line-clamp-1">
+                                  {s.qty}x {s.product.name}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Adicionais / observação */}
+                          {!item.isCombo && item.additionals && item.additionals.length > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">+ {item.additionals.map((a) => `${a.quantity > 1 ? `${a.quantity}x ` : ""}${a.additional.name}`).join(", ")}</p>
+                          )}
+                          {!item.isCombo && item.observation && (
+                            <p className="text-xs text-muted-foreground mt-1">Obs: {item.observation}</p>
+                          )}
+                        </div>
+
+                        {/* Stepper em caixa cinza */}
+                        <div className="self-start flex items-center gap-0.5 bg-secondary rounded-xl p-1 h-9">
+                          {item.isCombo ? (
+                            <button
+                              onClick={() => removeItem(item.product.id)}
+                              aria-label="Remover"
+                              className="w-7 h-7 flex items-center justify-center text-primary active:scale-90 transition-transform"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() =>
+                                  item.quantity === 1 ? removeItem(item.product.id) : updateQuantity(item.product.id, item.quantity - 1)
+                                }
+                                aria-label={item.quantity === 1 ? "Remover" : "Diminuir"}
+                                className="w-7 h-7 flex items-center justify-center text-primary active:scale-90 transition-transform"
+                              >
+                                {item.quantity === 1 ? <Trash2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                              </button>
+                              <span className="w-6 text-center text-sm font-bold text-foreground">{item.quantity}</span>
+                              <button
+                                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                aria-label="Aumentar"
+                                className="w-7 h-7 flex items-center justify-center text-primary active:scale-90 transition-transform"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Adicionar mais itens */}
+                <button
+                  onClick={onClose}
+                  className="w-full text-center py-4 text-sm font-bold text-primary hover:opacity-80 transition-opacity"
                 >
-                  Limpar
-                </Button>
+                  Adicionar mais itens
+                </button>
+
+                {/* Upsell Combo - so mostra se nao tiver combo no carrinho */}
+                {!items.some((item) => item.isCombo) && (
+                  <div className="pb-2">
+                    <UpsellCombo onAddCombo={addCombo} />
+                  </div>
+                )}
+
+                {/* Resumo de valores */}
+                <div className="mt-2 mb-4">
+                  <h3 className="text-base font-bold text-foreground mb-3">Resumo de valores</h3>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Total dos itens</span>
+                      <span className="flex items-center gap-2">
+                        {hasDiscount && (
+                          <span className="text-muted-foreground line-through">{brl(originalTotal)}</span>
+                        )}
+                        <span className="font-medium text-foreground">{brl(totalPrice)}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Entrega</span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-muted-foreground line-through">{brl(DELIVERY_STRIKE)}</span>
+                        <span className="font-bold text-green-600">Grátis</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2.5 border-t border-border">
+                      <span className="font-bold text-foreground text-lg">Total</span>
+                      <span className="font-bold text-foreground text-lg">{brl(totalPrice)}</span>
+                    </div>
+                  </div>
+
+                  {!canCheckout && (
+                    <p className="mt-3 text-xs text-center text-primary font-medium">
+                      Faltam {brl(remainingValue)} para atingir o pedido mínimo de {brl(MIN_ORDER_VALUE)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {copaAtiva() && (
+                <div className="flex-shrink-0 bg-gradient-to-r from-[#007a2f] to-[#009c3b] px-4 py-1.5 text-center text-xs font-bold text-[#ffdf00]">
+                  ⚽ Dia de jogo — peça agora e receba antes do apito
+                </div>
+              )}
+
+              {/* Barra inferior: Total + Continuar */}
+              <div className="flex-shrink-0 border-t border-border bg-card px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-3">
+                <div className="flex flex-col leading-tight min-w-0">
+                  <span className="text-[11px] text-muted-foreground">Total com entrega grátis</span>
+                  <span className="font-extrabold text-foreground text-lg truncate">
+                    {brl(totalPrice)} <span className="text-xs font-medium text-muted-foreground">/ {totalItems} {totalItems === 1 ? "item" : "itens"}</span>
+                  </span>
+                </div>
                 <Button
                   onClick={handleCheckout}
                   disabled={!canCheckout}
-                  className={`flex-1 py-6 text-base font-semibold gap-2 transition-all duration-200 ${
-                    canCheckout 
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]" 
+                  className={`flex-1 h-12 rounded-xl text-base font-bold transition-all duration-200 ${
+                    canCheckout
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg active:scale-[0.98]"
                       : "bg-muted text-muted-foreground cursor-not-allowed"
                   }`}
                 >
-                  <ShoppingBag className="w-5 h-5" />
-                  {canCheckout ? "Finalizar compra" : `Pedido minimo R$ ${MIN_ORDER_VALUE}`}
+                  Continuar
                 </Button>
               </div>
-            </div>
+            </>
           )}
         </div>
-      </div>
+          </motion.div>
 
       {/* Modal de Edicao de Combo */}
       {editingComboId && (() => {
@@ -303,16 +413,8 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
           onCancelEdit={() => setShowComboBuilder(false)}
         />
       )}
-
-      {/* Modal de Checkout PIX */}
-      {showPixCheckout && (
-        <PixCheckout
-          amount={totalPrice}
-          items={items.map(item => ({ name: item.product.name, quantity: item.quantity, price: item.product.price }))}
-          onClose={() => setShowPixCheckout(false)}
-          onSuccess={handlePaymentSuccess}
-        />
+        </motion.div>
       )}
-    </div>
+    </AnimatePresence>
   )
 }

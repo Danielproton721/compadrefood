@@ -3,8 +3,9 @@
 import { useState, useCallback, useEffect } from "react"
 import { products, categories } from "@/lib/data"
 import type { Product } from "@/lib/types"
-import { CartProvider } from "@/lib/cart-context"
+import { copaAtiva, ESQUENTA_IDS } from "@/lib/copa"
 import { StoreHeader } from "@/components/delivery/store-header"
+import { CopaBanner } from "@/components/delivery/copa-banner"
 import { SearchBar } from "@/components/delivery/search-bar"
 import { CategoryNav } from "@/components/delivery/category-nav"
 import { FeaturedProductCard } from "@/components/delivery/featured-product-card"
@@ -35,6 +36,15 @@ function DeliveryApp() {
   const [showPendingOrders, setShowPendingOrders] = useState(false)
   const [openCombo, setOpenCombo] = useState(false)
   const [categoryFilters, setCategoryFilters] = useState<Record<string, SortOrder>>({})
+  const [copaOn, setCopaOn] = useState(false)
+
+  useEffect(() => {
+    setCopaOn(copaAtiva())
+  }, [])
+
+  const esquentaProducts = ESQUENTA_IDS
+    .map((id) => products.find((p) => p.id === id))
+    .filter(Boolean) as Product[]
 
   useEffect(() => {
     // Verifica se ja tem endereco salvo
@@ -82,10 +92,11 @@ function DeliveryApp() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <StoreHeader 
-        userAddress={userAddress} 
-        onChangeAddress={() => setShowLocationPopup(true)} 
+      <StoreHeader
+        userAddress={userAddress}
+        onChangeAddress={() => setShowLocationPopup(true)}
       />
+      <CopaBanner />
       <SearchBar onProductSelect={(product) => setSelectedProduct(product)} />
       <CategoryNav
         activeCategory={activeCategory}
@@ -100,6 +111,40 @@ function DeliveryApp() {
       <main id="products-section" className={`max-w-lg mx-auto px-4 py-6 transition-all duration-300 ${isTransitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}`}>
         {activeCategory === "ofertas" ? (
           <>
+            {copaOn && esquentaProducts.length > 0 && (
+              <section className="mb-8">
+                <div className="-mx-4 mb-4 bg-gradient-to-r from-[#007a2f] via-[#009c3b] to-[#007a2f] px-4 py-3">
+                  <h2 className="flex items-center gap-2 text-lg font-black text-white">⚽ Esquenta do Jogo</h2>
+                  <p className="text-xs font-bold text-[#ffdf00]">Gelada + petisco pra ver o Brasil — receba antes do apito 🍺</p>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scroll-pl-4 scrollbar-hide snap-x snap-mandatory">
+                  <button
+                    type="button"
+                    onClick={() => setOpenCombo(true)}
+                    className="flex-shrink-0 w-[42vw] max-w-[180px] snap-start bg-card rounded-xl overflow-hidden border-2 border-[#ffdf00] shadow-sm text-left cursor-pointer
+                      hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                  >
+                    <div className="relative aspect-square w-full overflow-hidden bg-secondary/30">
+                      <img src="/banners/monte-combo.png" alt="Monte seu combo da torcida" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-bold text-sm text-foreground leading-tight">Combo da Torcida ⚽</h3>
+                      <span className="mt-1 block text-xs font-semibold text-[#e23744]">Clique e monte · até 30% OFF</span>
+                    </div>
+                  </button>
+                  {esquentaProducts.map((product, index) => (
+                    <div key={product.id} className="flex-shrink-0 w-[42vw] max-w-[180px] snap-start">
+                      <FeaturedProductCard
+                        product={product}
+                        index={index}
+                        onClick={() => setSelectedProduct(product)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <section className="mb-8">
               <div className="flex flex-col gap-2 mb-4">
                 <h2 className="text-lg font-bold text-foreground">
@@ -107,7 +152,7 @@ function DeliveryApp() {
                 </h2>
                 <PromoTimer />
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scroll-pl-4 scrollbar-hide snap-x snap-mandatory">
                 {featuredProducts.map((product, index) => (
                   <div key={product.id} className="flex-shrink-0 w-[42vw] max-w-[180px] snap-start">
                     <FeaturedProductCard
@@ -128,7 +173,7 @@ function DeliveryApp() {
               )
               if (categoryProducts.length === 0) return null
               
-              const isHorizontal = category.id === "salgadinho"
+              const isHorizontal = true
               const currentFilter = categoryFilters[category.id] || "default"
               const sortedProducts = sortProducts(categoryProducts, currentFilter) as Product[]
 
@@ -145,7 +190,7 @@ function DeliveryApp() {
                       />
                     </div>
                     {isHorizontal ? (
-                      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
+                      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scroll-pl-4 scrollbar-hide snap-x snap-mandatory">
                         {sortedProducts.map((product, index) => (
                           <div key={product.id} className="flex-shrink-0 w-[42vw] max-w-[180px] snap-start">
                             <FeaturedProductCard
@@ -255,9 +300,5 @@ function DeliveryApp() {
 }
 
 export default function Page() {
-  return (
-    <CartProvider>
-      <DeliveryApp />
-    </CartProvider>
-  )
+  return <DeliveryApp />
 }

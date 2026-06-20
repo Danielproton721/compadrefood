@@ -4,20 +4,21 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import Script from 'next/script'
 import { CookieBanner } from '@/components/cookie-banner'
 import { AgeVerification } from '@/components/delivery/age-verification'
+import { CartProvider } from '@/lib/cart-context'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Arco Bebidas - Pedidos Online',
+  title: 'CompadreFood - Pedidos Online',
   description: 'Bebida gelada pro teu bloco - entrega rapida!',
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#16a34a',
+  themeColor: '#e8202b',
   viewportFit: 'cover',
 }
 
@@ -62,9 +63,11 @@ export default function RootLayout({
         </noscript>
       </head>
       <body className={`font-sans antialiased`}>
-        <AgeVerification />
-        {children}
-        <CookieBanner />
+        <CartProvider>
+          <AgeVerification />
+          {children}
+          <CookieBanner />
+        </CartProvider>
       </body>
     </html>
   )

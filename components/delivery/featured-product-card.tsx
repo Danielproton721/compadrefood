@@ -44,7 +44,7 @@ export function FeaturedProductCard({ product, onClick, index = 0 }: FeaturedPro
           className="object-contain p-2 transition-transform duration-500 ease-out group-hover:scale-110"
         />
         {discountPercent ? (
-          <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground font-bold text-xs animate-in zoom-in-50 duration-300 shadow-lg">
+          <Badge className="absolute top-2 left-2 bg-promo text-promo-foreground font-bold text-xs animate-in zoom-in-50 duration-300 shadow-lg">
             -{discountPercent}%
           </Badge>
         ) : product.badge && (

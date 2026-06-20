@@ -1,6 +1,7 @@
 "use client"
 
-import { Star, Clock, Truck, CreditCard, MapPin, ChevronDown } from "lucide-react"
+import { useState } from "react"
+import { Star, MapPin, ChevronDown, ChevronRight, Search, Heart, Truck } from "lucide-react"
 import Image from "next/image"
 
 interface StoreHeaderProps {
@@ -9,126 +10,147 @@ interface StoreHeaderProps {
 }
 
 export function StoreHeader({ userAddress, onChangeAddress }: StoreHeaderProps) {
-  
+  const [favorited, setFavorited] = useState(false)
 
   // Extrai cidade do endereco
   const getCityFromAddress = (address: string) => {
     const parts = address.split(",")
     if (parts.length >= 2) {
-      // Tenta pegar a penultima ou ultima parte que geralmente é a cidade
-      const city = parts[parts.length - 2]?.trim() || parts[parts.length - 1]?.trim()
-      return city
+      return parts[parts.length - 2]?.trim() || parts[parts.length - 1]?.trim()
     }
     return address
   }
+  const city = userAddress ? getCityFromAddress(userAddress) : "Selecione sua cidade"
+
+  const focusSearch = () => {
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"))
+    const search = inputs.find((i) => /busc|procur|pesquis/i.test(i.placeholder || ""))
+    if (search) {
+      search.scrollIntoView({ behavior: "smooth", block: "center" })
+      setTimeout(() => search.focus(), 300)
+    }
+  }
 
   return (
-    <header className="bg-card border-b border-border">
-      <div className="max-w-lg mx-auto px-4 py-4">
-        {/* Top bar: Receber em */}
-        <button
-          type="button"
-          onClick={onChangeAddress}
-          className="flex items-center gap-1.5 mb-3 min-w-0 cursor-pointer group animate-in fade-in slide-in-from-top-4 duration-500"
-        >
-          <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-          <div className="flex flex-col items-start min-w-0">
-            <span className="text-[11px] text-muted-foreground leading-tight">{"Receber em"}</span>
-            <span className="text-sm font-semibold text-foreground leading-tight truncate max-w-[200px] group-hover:text-primary transition-colors">
-              {userAddress ? getCityFromAddress(userAddress) : "Selecione sua cidade"}
-            </span>
-          </div>
-          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0 group-hover:text-primary transition-colors" />
-        </button>
+    <header className="bg-background">
+      {/* Capa vermelha (cover) com selecao de endereco + acoes */}
+      <div className="relative h-40 w-full overflow-hidden bg-gradient-to-br from-[#e8202b] via-[#d11522] to-[#a50d18]">
+        {/* brilho sutil */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(255,255,255,0.22),transparent_45%)]" />
+        <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
 
-        {/* Logo centralizada e maior */}
-        <div className="flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="w-[104px] h-[104px] flex items-center justify-center overflow-hidden hover:scale-105 transition-all duration-300 cursor-pointer">
-            <Image
-              src="/logo.webp"
-              alt="Arco Bebidas"
-              width={104}
-              height={104}
-              className="object-contain"
-            />
-          </div>
-          
-          {/* Badge loja aberta */}
-          <div className="mt-2 inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-            </span>
-            <span className="text-xs font-semibold text-primary">
-              Loja aberta agora a 2,5 KM de voce!
-            </span>
-          </div>
-
-          {/* Pedido minimo e prazo */}
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            <span className="font-bold text-foreground">{""}</span>
-            {" "}
-            {userAddress ? (
-              <>
-                Receba em ate{" "}
-                <span className="font-bold text-foreground">1 hora</span>
-                {" "}em {getCityFromAddress(userAddress)}
-              </>
-            ) : (
-              <>
-                Receba em ate{" "}
-                <span className="font-bold text-foreground">1 hora</span>
-              </>
-            )}
-          </p>
-
-          {/* Info abaixo da logo: avaliacao, tempo e frete */}
-          <div className="flex items-center justify-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="font-medium text-foreground">4.8</span>
-              <span className="text-xs">(1360+ avaliacoes)</span>
-            </div>
-            <div className="flex items-center gap-1">
-              
-              
-            </div>
-            <div className="flex items-center gap-1">
-              <Truck className="w-4 h-4 text-primary" />
-              <span className="text-primary font-medium">Frete Gratis</span>
-            </div>
-          </div>
-          
-          <p className="text-xs text-muted-foreground mt-2 font-semibold text-center">{"Combo gelado e rápido perto de voce !"}</p>
-        </div>
-
-        {/* Banner de localizacao */}
-        {userAddress && (
+        <div className="relative max-w-lg mx-auto px-4 pt-4 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-3 duration-500">
+          {/* Endereco */}
           <button
             type="button"
             onClick={onChangeAddress}
-            className="w-full mt-4 bg-primary/10 border border-primary/20 rounded-xl py-3 px-4
-              hover:bg-primary/15 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+            className="flex items-center gap-1.5 text-left min-w-0 active:scale-[0.98] transition-transform"
           >
-            <span className="text-primary font-semibold text-sm">
-              Entrega Grátis para {getCityFromAddress(userAddress)}!
+            <MapPin className="w-4 h-4 text-white shrink-0" />
+            <span className="flex flex-col min-w-0">
+              <span className="text-[10px] uppercase tracking-wide text-white/75 leading-tight">Receber em</span>
+              <span className="flex items-center gap-1 text-sm font-bold text-white leading-tight truncate max-w-[190px]">
+                <span className="truncate">{city}</span>
+                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+              </span>
             </span>
           </button>
-        )}
 
-
-
-        {/* Info discreta */}
-        <div className="mt-3 flex items-center justify-center gap-4 text-xs text-muted-foreground
-          animate-in fade-in duration-500 delay-300 fill-mode-both">
-          <div className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{"30-80 min"}</span>
+          {/* Acoes */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setFavorited((v) => !v)}
+              aria-label="Favoritar loja"
+              className="w-9 h-9 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <Heart className={`w-5 h-5 transition-colors ${favorited ? "fill-white text-white" : "text-white"}`} />
+            </button>
+            <button
+              type="button"
+              onClick={focusSearch}
+              aria-label="Buscar produtos"
+              className="w-9 h-9 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <Search className="w-5 h-5 text-white" />
+            </button>
           </div>
-          <span className="text-border">|</span>
-          <div className="flex items-center gap-1">
-            <CreditCard className="w-3.5 h-3.5" />
-            <span className="leading-3 tracking-tighter">   Aceitamos Pix</span>
+        </div>
+      </div>
+
+      {/* Card branco sobreposto com logo redonda */}
+      <div className="max-w-lg mx-auto px-4">
+        <div className="-mt-12 relative bg-card rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-border/60 px-5 pt-12 pb-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {/* Logo redonda sobreposta */}
+          <div className="absolute -top-11 left-1/2 -translate-x-1/2">
+            <div className="w-[88px] h-[88px] rounded-full bg-white ring-4 ring-card shadow-xl overflow-hidden flex items-center justify-center hover:scale-105 transition-transform duration-300">
+              <Image
+                src="/logo.png"
+                alt="CompadreFood"
+                width={88}
+                height={88}
+                className="object-contain"
+                priority
+              />
+            </div>
+          </div>
+
+          {/* Nome + chevron */}
+          <button
+            type="button"
+            onClick={onChangeAddress}
+            className="w-full flex items-center justify-between gap-2 group"
+          >
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight leading-none">
+              CompadreFood
+            </h1>
+            <ChevronRight className="w-6 h-6 text-muted-foreground shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Entrega rápida • 2,5 km • Mín R$ 85,00
+          </p>
+
+          <div className="my-4 border-t border-border" />
+
+          {/* Avaliacao + status */}
+          <button
+            type="button"
+            onClick={onChangeAddress}
+            className="w-full flex items-center justify-between gap-2 group"
+          >
+            <div className="flex items-center gap-x-2 gap-y-1 flex-wrap">
+              <span className="flex items-center gap-1 font-bold text-foreground">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                4,8
+              </span>
+              <span className="text-sm text-muted-foreground">(1360+ avaliações)</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-600 text-white text-xs font-bold px-2.5 py-1">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                </span>
+                Aberta agora
+              </span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          <div className="my-4 border-t border-border" />
+
+          {/* Entrega */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-bold text-foreground flex items-center gap-1.5">
+                <Truck className="w-4 h-4 text-green-600 shrink-0" />
+                Frete Grátis • 30-80 min
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Receba em até 1h • Aceitamos Pix
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full bg-[#fff1e8] text-[#e8202b] text-xs font-extrabold px-2.5 py-1">
+              Grátis
+            </span>
           </div>
         </div>
       </div>

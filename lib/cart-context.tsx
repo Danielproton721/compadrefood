@@ -1,7 +1,30 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import type { CartItem, Product, Additional } from "./types"
+
+// Persistimos o carrinho para sobreviver à navegação até /checkout (e a reloads).
+const STORAGE_KEY = "arco-bebidas-cart"
+
+function loadCart(): CartItem[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function saveCart(items: CartItem[]) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+  } catch {
+    // silent fail (modo privado / storage cheio)
+  }
+}
 
 interface CartContextType {
   items: CartItem[]
@@ -26,6 +49,18 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [freeAdditionalChosen, setFreeAdditionalChosen] = useState<Additional | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // Hidrata do localStorage só no cliente (evita mismatch de SSR).
+  useEffect(() => {
+    setItems(loadCart())
+    setMounted(true)
+  }, [])
+
+  // Persiste a cada mudança (depois de hidratar, pra não sobrescrever com []).
+  useEffect(() => {
+    if (mounted) saveCart(items)
+  }, [items, mounted])
 
   const addItem = (
     product: Product,
@@ -36,16 +71,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existingIndex = prev.findIndex((item) => item.product.id === product.id)
       if (existingIndex >= 0) {
-        const updated = [...prev]
-        updated[existingIndex].quantity += quantity
-        return updated
+        // Update imutável: nunca mutar o objeto que ainda está em `prev`.
+        return prev.map((item, i) =>
+          i === existingIndex ? { ...item, quantity: item.quantity + quantity } : item
+        )
       }
       return [...prev, { product, quantity, additionals, observation }]
     })
   }
 
   const addCombo = (comboItems: { destilados: { product: Product; qty: number }[]; gelos: { product: Product; qty: number }[]; energeticos: { product: Product; qty: number }[] }, comboPrice: number) => {
-    const comboId = `combo-${Date.now()}`
+    const comboId = `combo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const allItems = [...comboItems.destilados, ...comboItems.gelos, ...comboItems.energeticos]
     const descParts = allItems.map((i) => `${i.qty}x ${i.product.name}`).join(" + ")
     const comboProduct: Product = {

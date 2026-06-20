@@ -58,7 +58,7 @@ export function CompactProductCard({ product, onClick, index = 0 }: CompactProdu
           className="object-contain p-1 transition-transform duration-300 group-hover:scale-110"
         />
         {discountPercent && (
-          <Badge className="absolute top-1 left-1 bg-primary text-primary-foreground font-bold text-[10px] px-1.5 py-0.5 shadow-md">
+          <Badge className="absolute top-1 left-1 bg-promo text-promo-foreground font-bold text-[10px] px-1.5 py-0.5 shadow-md">
             -{discountPercent}%
           </Badge>
         )}
