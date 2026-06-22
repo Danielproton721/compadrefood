@@ -9,13 +9,13 @@ export function AboutUs() {
       <h2 className="text-lg font-bold text-foreground mb-4">Sobre Nós</h2>
       
       <div className="bg-card rounded-xl overflow-hidden border border-border shadow-sm">
-        <div className="relative w-full aspect-[3/4] bg-muted">
+        <div className="relative w-full h-56 bg-muted">
           <Image
             src="/store-front-compadrefood.jpg"
             alt="Fachada CompadreFood Distribuidora"
             fill
             sizes="(max-width: 640px) 100vw, 640px"
-            className="object-cover"
+            className="object-cover object-top"
           />
         </div>
         
