@@ -18,6 +18,8 @@ interface CartDrawerProps {
 }
 
 const MIN_ORDER_VALUE = 85
+// Único produto que pode furar o pedido mínimo (usado pra testes de checkout).
+const TEST_PRODUCT_ID = "teste-5"
 // Valor de frete "de" (riscado) só para evidenciar a economia da entrega grátis.
 const DELIVERY_STRIKE = 9.9
 
@@ -30,7 +32,9 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
 
   const hasUpsellItemInCart = items.some((item) => UPSELL_PRODUCT_IDS.includes(item.product.id))
 
-  const canCheckout = totalPrice >= MIN_ORDER_VALUE
+  // O produto de teste libera o checkout mesmo abaixo do mínimo.
+  const hasTestProduct = items.some((item) => item.product.id === TEST_PRODUCT_ID)
+  const canCheckout = totalPrice >= MIN_ORDER_VALUE || hasTestProduct
   const remainingValue = MIN_ORDER_VALUE - totalPrice
 
   // Total "de" (sem desconto) para mostrar o riscado no resumo.

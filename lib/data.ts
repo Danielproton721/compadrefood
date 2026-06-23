@@ -1,6 +1,20 @@
 import type { Product, Additional, Review } from "./types"
 
 export const products: Product[] = [
+  // PRODUTO DE TESTE — categoria "teste": não aparece nas seções/abas da home,
+  // só na busca (pesquise "teste"). Pode furar o pedido mínimo (ver cart-drawer).
+  {
+    id: "teste-5",
+    name: "Produto de Teste R$ 5",
+    description: "Item de teste para validar o checkout. Pesquise por \"teste\".",
+    price: 5.0,
+    image: "/placeholder.svg",
+    category: "teste",
+    badge: "TESTE",
+    stock: 999,
+    includes: ["1 unidade"],
+    accompaniments: [],
+  },
   // OFERTAS DO DIA
   {
     id: "400",
