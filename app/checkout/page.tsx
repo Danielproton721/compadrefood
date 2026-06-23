@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react';
-import { Lock, CreditCard, ShieldCheck, Mail, Trash2, ShoppingBag, X, Copy, PackageCheck, Upload, FileCheck2, Truck, ChevronLeft, MapPin, ChevronDown, Check, User } from 'lucide-react';
+import { Lock, CreditCard, ShieldCheck, Mail, Trash2, ShoppingBag, X, Copy, PackageCheck, Upload, FileCheck2, Truck, ChevronLeft, MapPin, ChevronDown, Check, User, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PixIcon, MastercardIcon, VisaIcon, EloIcon } from '@/components/store/payment-icons';
 import { useCart } from '@/lib/cart-context';
@@ -1712,42 +1712,12 @@ function CheckoutContent() {
                           <input type="text" readOnly value={pixData.qrCode} className="flex-1 bg-white text-gray-700 text-xs p-3 rounded-xl border border-gray-200 font-mono focus:outline-none" />
                           <button onClick={handleCopyPix} className="bg-[#e23744] text-[#1a1a1a] text-xs font-bold px-4 py-3 rounded-xl hover:bg-[#e23744]/80 transition-colors">COPIAR</button>
                         </div>
-                        <div className="mt-4 w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-sm">
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fff8e5] text-[#e23744]">
-                              {pixProof ? <FileCheck2 className="h-5 w-5" /> : <Upload className="h-5 w-5" />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-black uppercase tracking-[0.14em] text-gray-500">Comprovante opcional</p>
-                              <p className="mt-1 text-xs font-medium leading-relaxed text-gray-500">
-                                Se quiser, anexe uma imagem ou PDF do comprovante. A confirmação do PIX continua automática.
-                              </p>
-                            </div>
+                        <div className="mt-4 flex w-full max-w-sm items-center justify-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 shadow-sm">
+                          <Loader2 className="h-5 w-5 shrink-0 animate-spin text-emerald-600" />
+                          <div className="text-left">
+                            <p className="text-sm font-bold text-emerald-700">Aguardando pagamento…</p>
+                            <p className="text-xs font-medium text-emerald-600">Assim que o PIX cair, seu pedido é confirmado automaticamente.</p>
                           </div>
-
-                          <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-[#e23744]/60 bg-[#fffdf5] px-4 py-3 text-xs font-black uppercase tracking-wide text-[#1a1a1a] transition hover:border-[#e23744] hover:bg-[#fff8e5]">
-                            <Upload className="h-4 w-4 text-[#e23744]" />
-                            {pixProof ? 'Trocar comprovante' : 'Enviar comprovante'}
-                            <input
-                              type="file"
-                              accept="image/*,application/pdf"
-                              className="sr-only"
-                              onChange={handlePixProofChange}
-                            />
-                          </label>
-
-                          {pixProof && (
-                            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
-                              Comprovante anexado: <span className="break-words">{pixProof.name}</span>
-                              <span className="ml-1 font-semibold text-emerald-600">({formatProofSize(pixProof.size)})</span>
-                            </div>
-                          )}
-
-                          {pixProofError && (
-                            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
-                              {pixProofError}
-                            </div>
-                          )}
                         </div>
                       </>
                     )}
