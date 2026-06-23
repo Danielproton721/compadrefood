@@ -75,7 +75,9 @@ export default async function AdminPage() {
               <tbody>
                 {orders.map((o) => {
                   const st = STATUS[o.status]
-                  const when = o.createdAt ? new Date(o.createdAt).toLocaleString("pt-BR") : "—"
+                  const when = o.createdAt
+                    ? new Date(o.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+                    : "—"
                   return (
                     <tr key={o.txid} className="border-b border-border/60 last:border-0 align-top">
                       <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">{when}</td>
