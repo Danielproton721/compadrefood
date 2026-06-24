@@ -5,6 +5,24 @@ import type { CartItem, Product, Additional } from "./types"
 
 // Persistimos o carrinho para sobreviver à navegação até /checkout (e a reloads).
 const STORAGE_KEY = "compadrefood-cart"
+const COUPON_KEY = "compadrefood-coupon"
+
+// Cupons válidos: código (MAIÚSCULO) -> percentual de desconto (0.05 = 5%).
+// COPA e COPA5 fazem a mesma coisa (a arte do banner anuncia "COPA").
+const COUPONS: Record<string, number> = {
+  COPA: 0.05,
+  COPA5: 0.05,
+}
+
+function loadCoupon(): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    const c = localStorage.getItem(COUPON_KEY)
+    return c && COUPONS[c] ? c : null
+  } catch {
+    return null
+  }
+}
 
 function loadCart(): CartItem[] {
   if (typeof window === "undefined") return []
@@ -40,6 +58,12 @@ interface CartContextType {
   clearCart: () => void
   totalItems: number
   totalPrice: number
+  coupon: string | null
+  discountRate: number
+  discount: number
+  totalWithDiscount: number
+  applyCoupon: (code: string) => boolean
+  removeCoupon: () => void
   freeAdditionalChosen: Additional | null
   setFreeAdditionalChosen: (additional: Additional | null) => void
 }
@@ -48,12 +72,14 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [coupon, setCoupon] = useState<string | null>(null)
   const [freeAdditionalChosen, setFreeAdditionalChosen] = useState<Additional | null>(null)
   const [mounted, setMounted] = useState(false)
 
   // Hidrata do localStorage só no cliente (evita mismatch de SSR).
   useEffect(() => {
     setItems(loadCart())
+    setCoupon(loadCoupon())
     setMounted(true)
   }, [])
 
@@ -61,6 +87,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (mounted) saveCart(items)
   }, [items, mounted])
+
+  // Persiste o cupom aplicado (sobrevive à navegação pro /checkout).
+  useEffect(() => {
+    if (!mounted) return
+    try {
+      if (coupon) localStorage.setItem(COUPON_KEY, coupon)
+      else localStorage.removeItem(COUPON_KEY)
+    } catch {
+      // silent
+    }
+  }, [coupon, mounted])
+
+  const applyCoupon = (code: string): boolean => {
+    const norm = code.trim().toUpperCase()
+    if (COUPONS[norm]) {
+      setCoupon(norm)
+      return true
+    }
+    return false
+  }
+
+  const removeCoupon = () => setCoupon(null)
 
   const addItem = (
     product: Product,
@@ -125,6 +173,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = () => {
     setItems([])
     setFreeAdditionalChosen(null)
+    setCoupon(null)
   }
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
@@ -132,6 +181,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (sum, item) => sum + item.product.price * item.quantity,
     0
   )
+
+  // Desconto do cupom aplicado sobre o subtotal.
+  const discountRate = coupon ? COUPONS[coupon] ?? 0 : 0
+  const discount = Math.round(totalPrice * discountRate * 100) / 100
+  const totalWithDiscount = Math.max(0, Math.round((totalPrice - discount) * 100) / 100)
 
   return (
     <CartContext.Provider
@@ -144,6 +198,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         totalItems,
         totalPrice,
+        coupon,
+        discountRate,
+        discount,
+        totalWithDiscount,
+        applyCoupon,
+        removeCoupon,
         freeAdditionalChosen,
         setFreeAdditionalChosen,
       }}

@@ -24,11 +24,20 @@ const TEST_PRODUCT_ID = "teste-5"
 const DELIVERY_STRIKE = 9.9
 
 export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawerProps) {
-  const { items, totalPrice, totalItems, updateQuantity, removeItem, clearCart, addCombo } = useCart()
+  const { items, totalPrice, totalItems, updateQuantity, removeItem, clearCart, addCombo, coupon, discount, discountRate, totalWithDiscount, applyCoupon, removeCoupon } = useCart()
   const router = useRouter()
   const [showUpsellComida, setShowUpsellComida] = useState(false)
   const [editingComboId, setEditingComboId] = useState<string | null>(null)
   const [showComboBuilder, setShowComboBuilder] = useState(false)
+  const [couponInput, setCouponInput] = useState("")
+  const [couponMsg, setCouponMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const handleApplyCoupon = () => {
+    if (!couponInput.trim()) return
+    const ok = applyCoupon(couponInput)
+    setCouponMsg(ok ? { ok: true, text: "Cupom aplicado! 🎉" } : { ok: false, text: "Cupom inválido." })
+    if (ok) setCouponInput("")
+  }
 
   const hasUpsellItemInCart = items.some((item) => UPSELL_PRODUCT_IDS.includes(item.product.id))
 
@@ -317,6 +326,47 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
                 {/* Resumo de valores */}
                 <div className="mt-2 mb-4">
                   <h3 className="text-base font-bold text-foreground mb-3">Resumo de valores</h3>
+
+                  {/* Cupom de desconto */}
+                  <div className="mb-3">
+                    {coupon ? (
+                      <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-3 py-2.5">
+                        <span className="text-sm font-bold text-green-700">
+                          Cupom {coupon} aplicado · -{Math.round(discountRate * 100)}%
+                        </span>
+                        <button onClick={removeCoupon} className="text-xs font-semibold text-green-700 underline">
+                          remover
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={couponInput}
+                            onChange={(e) => {
+                              setCouponInput(e.target.value.toUpperCase())
+                              setCouponMsg(null)
+                            }}
+                            onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                            placeholder="Cupom de desconto"
+                            className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm uppercase tracking-wide outline-none focus:ring-2 focus:ring-primary/40"
+                          />
+                          <button
+                            onClick={handleApplyCoupon}
+                            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                          >
+                            Aplicar
+                          </button>
+                        </div>
+                        {couponMsg && (
+                          <p className={`mt-1.5 text-xs font-medium ${couponMsg.ok ? "text-green-600" : "text-red-600"}`}>
+                            {couponMsg.text}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Total dos itens</span>
@@ -334,9 +384,15 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
                         <span className="font-bold text-green-600">Grátis</span>
                       </span>
                     </div>
+                    {discount > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Desconto ({coupon})</span>
+                        <span className="font-bold text-green-600">- {brl(discount)}</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between pt-2.5 border-t border-border">
                       <span className="font-bold text-foreground text-lg">Total</span>
-                      <span className="font-bold text-foreground text-lg">{brl(totalPrice)}</span>
+                      <span className="font-bold text-foreground text-lg">{brl(totalWithDiscount)}</span>
                     </div>
                   </div>
 
@@ -359,7 +415,7 @@ export function CartDrawer({ isOpen, onClose, onNavigateToCategory }: CartDrawer
                 <div className="flex flex-col leading-tight min-w-0">
                   <span className="text-[11px] text-muted-foreground">Total com entrega grátis</span>
                   <span className="font-extrabold text-foreground text-lg truncate">
-                    {brl(totalPrice)} <span className="text-xs font-medium text-muted-foreground">/ {totalItems} {totalItems === 1 ? "item" : "itens"}</span>
+                    {brl(totalWithDiscount)} <span className="text-xs font-medium text-muted-foreground">/ {totalItems} {totalItems === 1 ? "item" : "itens"}</span>
                   </span>
                 </div>
                 <Button

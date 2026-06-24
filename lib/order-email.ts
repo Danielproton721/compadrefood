@@ -33,6 +33,8 @@ export type OrderEmailInput = {
   items: OrderEmailItem[];
   subtotal: number;
   shipping?: number;
+  discount?: number;
+  coupon?: string;
   total: number;
   paymentMethod: "pix" | "card";
 };
@@ -216,6 +218,10 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
               <td style="padding:0 0 10px;color:${C.muted};font-size:12px;">Entrega</td>
               <td align="right" style="padding:0 0 10px;color:${shipping > 0 ? C.text : C.green};font-size:12px;font-weight:700;">${shipping > 0 ? formatBRL(shipping) : "Grátis"}</td>
             </tr>
+            ${order.discount && order.discount > 0 ? `<tr>
+              <td style="padding:0 0 10px;color:${C.muted};font-size:12px;">Desconto${order.coupon ? ` (${escapeHtml(order.coupon)})` : ""}</td>
+              <td align="right" style="padding:0 0 10px;color:${C.green};font-size:12px;font-weight:700;">- ${formatBRL(order.discount)}</td>
+            </tr>` : ""}
             <tr>
               <td style="padding:10px 0;border-top:1px solid ${C.line};color:${C.primary};font-size:13px;font-weight:800;">Total pago</td>
               <td align="right" style="padding:10px 0;border-top:1px solid ${C.line};color:${C.green};font-size:15px;font-weight:800;">${formatBRL(order.total)}</td>
@@ -377,6 +383,10 @@ export function renderAbandonedCartEmail(order: OrderEmailInput) {
               <td style="padding:0 0 10px;color:${C.muted};font-size:12px;">Entrega</td>
               <td align="right" style="padding:0 0 10px;color:${shipping > 0 ? C.text : C.green};font-size:12px;font-weight:700;">${shipping > 0 ? formatBRL(shipping) : "Grátis"}</td>
             </tr>
+            ${order.discount && order.discount > 0 ? `<tr>
+              <td style="padding:0 0 10px;color:${C.muted};font-size:12px;">Desconto${order.coupon ? ` (${escapeHtml(order.coupon)})` : ""}</td>
+              <td align="right" style="padding:0 0 10px;color:${C.green};font-size:12px;font-weight:700;">- ${formatBRL(order.discount)}</td>
+            </tr>` : ""}
             <tr>
               <td style="padding:10px 0;border-top:1px solid ${C.line};color:${C.primary};font-size:13px;font-weight:800;">Total</td>
               <td align="right" style="padding:10px 0;border-top:1px solid ${C.line};color:${C.accent};font-size:15px;font-weight:800;">${formatBRL(order.total)}</td>

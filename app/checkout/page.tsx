@@ -225,6 +225,9 @@ function CheckoutContent() {
   const {
     items: cartItems,
     totalPrice,
+    coupon,
+    discount,
+    totalWithDiscount,
     removeItem: removeCartItem,
     updateQuantity: updateCartQuantity,
     clearCart,
@@ -332,7 +335,8 @@ function CheckoutContent() {
 
   // Entrega grátis (delivery local em BH). Sem frete pago.
   const shippingPrice: number = 0;
-  const checkoutTotal = totalPrice;
+  // Total cobrado = subtotal menos o desconto do cupom (se houver).
+  const checkoutTotal = totalWithDiscount;
 
   // Conversao de compra (Google Ads) — dispara apenas quando o pagamento foi
   // confirmado, enviando o valor real e o id unico do pedido.
@@ -611,6 +615,8 @@ function CheckoutContent() {
             items: items.map((it) => ({ name: it.name, image: it.image, price: it.price, quantity: it.quantity })),
             subtotal: totalPrice,
             shipping: 0,
+            discount: discount > 0 ? discount : undefined,
+            coupon: coupon ?? undefined,
             total: checkoutTotal,
           }),
         });
@@ -618,7 +624,7 @@ function CheckoutContent() {
         console.error('[ORDER EMAIL] Falha ao despachar:', err);
       }
     },
-    [cep, city, complement, cpf, email, items, name, neighborhood, number, phone, stateUF, street, totalPrice, checkoutTotal],
+    [cep, city, complement, cpf, email, items, name, neighborhood, number, phone, stateUF, street, totalPrice, checkoutTotal, discount, coupon],
   );
 
   const handlePixSubmit = async () => {
@@ -657,6 +663,8 @@ function CheckoutContent() {
             items: items.map((it) => ({ name: it.name, image: it.image, price: it.price, quantity: it.quantity })),
             subtotal: totalPrice,
             shipping: 0,
+            discount: discount > 0 ? discount : undefined,
+            coupon: coupon ?? undefined,
             total: checkoutTotal,
           },
         })
@@ -1655,6 +1663,9 @@ function CheckoutContent() {
                 <div className="mt-3 space-y-2.5">
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Total dos itens</span><span className="font-medium text-gray-800">R$ {totalPrice.toFixed(2).replace('.', ',')}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Entrega</span><span className="font-bold text-emerald-600">Grátis</span></div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-sm"><span className="text-gray-500">Desconto ({coupon})</span><span className="font-bold text-emerald-600">- R$ {discount.toFixed(2).replace('.', ',')}</span></div>
+                  )}
                   <div className="flex justify-between items-baseline pt-2.5 border-t border-gray-100"><span className="font-bold text-gray-900 text-lg">Total</span><span className="font-bold text-gray-900 text-lg">R$ {checkoutTotal.toFixed(2).replace('.', ',')}</span></div>
                 </div>
 

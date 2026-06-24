@@ -63,9 +63,18 @@ export function CopaBanner() {
               <p className="text-[11px] font-medium text-white/85">
                 {aoVivo ? "Tá rolando! Garanta o gelo 🍺" : `${jogo.quando} · receba antes do apito 🍺`}
               </p>
+              {!aoVivo && (
+                <p className="mt-1 text-[10px] font-bold text-[#ffdf00]">🎟️ Cupom COPA = 5% OFF</p>
+              )}
             </div>
 
-            {!aoVivo && (
+            {aoVivo ? (
+              <img
+                src="/cupom-copa.png"
+                alt="Use o cupom COPA e ganhe 5% de desconto"
+                className="h-12 w-auto shrink-0 object-contain"
+              />
+            ) : (
               <div className="flex shrink-0 items-start gap-1.5">
                 {dias > 0 && <Chip value={dias} label="dias" />}
                 <Chip value={horas} label="h" />
