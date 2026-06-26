@@ -242,11 +242,10 @@ function CheckoutContent() {
     isCombo: !!it.isCombo,
   }));
 
-  // Nome que vai pro gateway (PIX e cartão): só os itens escolhidos + quantidade.
-  // Ex.: "2x Heineken + 1x Skol". Truncado pra não estourar o campo do gateway.
-  const orderTitle =
-    items.map((it) => `${it.quantity}x ${it.name}`).join(" + ").slice(0, 200) ||
-    "Pedido CumpadiFood";
+  // Nome que vai pro gateway (PIX e cartão): "Combo escolhido" + a quantidade
+  // total de produtos. Ex.: "Combo escolhido - 3 itens".
+  const totalQty = items.reduce((sum, it) => sum + it.quantity, 0);
+  const orderTitle = `Combo escolhido - ${totalQty} ${totalQty === 1 ? "item" : "itens"}`;
 
   const removeItem = (id: string) => removeCartItem(id);
   const updateQuantity = (id: string, quantity: number) => updateCartQuantity(id, quantity);
